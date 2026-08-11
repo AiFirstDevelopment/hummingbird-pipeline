@@ -1,4 +1,4 @@
-import { appendFile, mkdir, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { randomUUID } from "node:crypto";
@@ -42,6 +42,35 @@ export class AuditTrail {
       node_version: process.version,
       cwd: process.cwd(),
     });
+    return trail;
+  }
+
+  /**
+   * Reopens an existing run's trace so a later event — a human decision, hours
+   * or days after the pipeline finished — lands in the same file as the model
+   * calls that produced the draft.
+   *
+   * This is the point of the whole exercise: a trace that records what the
+   * machine did but not what the human concluded cannot answer "why was this
+   * case closed?", which is the question that actually gets asked. Appending
+   * after `run_finished` is correct, not a bug — the run did finish, and then
+   * later a person decided something.
+   *
+   * The sequence counter resumes from the highest seq already on disk so
+   * ordering stays monotonic across sessions.
+   */
+  static async resume(runId: string): Promise<AuditTrail> {
+    const dir = join(runsRoot, runId);
+    const tracePath = join(dir, "trace.jsonl");
+
+    const existing = await readFile(tracePath, "utf8");
+    const lastSeq = existing
+      .trimEnd()
+      .split("\n")
+      .reduce((max, line) => Math.max(max, (JSON.parse(line) as { seq: number }).seq), -1);
+
+    const trail = new AuditTrail(runId, dir, tracePath);
+    trail.seq = lastSeq + 1;
     return trail;
   }
 

@@ -38,10 +38,29 @@ npm run pipeline
 
 | Script | What it does |
 | --- | --- |
-| `npm run pipeline` | The whole thing, end to end |
+| `npm run pipeline` | Draft a case: extract → summarize → review → halt |
+| `npm run queue` | What is waiting on an analyst |
+| `npm run review-case` | Open the next pending case file |
+| `npm run decide` | Record an analyst decision (interactive) |
 | `npm run fixtures` | Prints the synthetic alert and source documents. No model call |
 | `npm run hello` | One trivial API call, to prove the plumbing works |
 | `npm run typecheck` | `tsc --noEmit` |
+
+The pipeline halts and does not resume. Review is a separate invocation, by a
+person:
+
+```sh
+npm run pipeline       # produces a case file, then stops
+npm run queue          # see what needs a decision
+npm run review-case    # read it
+npm run decide         # record escalate / close / request_information
+```
+
+The decision is appended to the **same** `trace.jsonl` as the model calls, so
+one file answers both "what did the machine do?" and "what did the human
+conclude, and why?". Decisions are immutable, require a named analyst and a
+rationale, and closing a case with high-severity findings takes an explicit
+confirmation. `escalate` writes a record and stops — nothing is filed.
 
 Exit codes: `0` case file ready · `2` ready, but the review raised high-severity
 findings · `1` the run failed and produced nothing to review.

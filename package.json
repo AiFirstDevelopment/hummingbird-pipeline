@@ -9,7 +9,10 @@
     "hello": "tsx --env-file=.env src/hello.ts",
     "fixtures": "tsx src/show-fixtures.ts",
     "pipeline": "tsx --env-file=.env src/pipeline.ts",
-    "experiment:review-prompt": "tsx --env-file=.env src/experiments/review-prompt-ab.ts"
+    "experiment:review-prompt": "tsx --env-file=.env src/experiments/review-prompt-ab.ts",
+    "queue": "tsx src/queue.ts",
+    "decide": "tsx src/decide.ts",
+    "review-case": "tsx src/open-case.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

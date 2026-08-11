@@ -28,6 +28,46 @@ before any request goes out — a missing key never surfaces as a mid-run 401.
 A full run takes roughly two minutes. Most of that is the model thinking, not
 network — do not assume it has hung before ~3 minutes.
 
+## The human review loop
+
+`npm run pipeline` produces a draft and halts. It does not resume — there is no
+"continue" and there is not meant to be one. A person reviews the case and
+records a decision, which is a separate invocation:
+
+```sh
+npm run queue          # what is waiting on an analyst
+npm run review-case    # open the next pending case file
+npm run decide         # record the decision (interactive)
+```
+
+Non-interactive form, for scripting or tests:
+
+```sh
+npm run decide -- --run <run-id> --decision escalate \
+  --analyst "T. Okonkwo-Hale" --rationale "why, at least 20 chars"
+```
+
+Decisions are `escalate` / `close` / `request_information`.
+
+**The decision is appended to the same `trace.jsonl` as the model calls**, after
+`run_finished`. That is correct, not a bug: the run finished, and later a person
+decided something. A trace that records what the machine did but not what the
+human concluded cannot answer "why was this case closed?", which is the question
+that actually gets asked.
+
+Controls on the decision path, all deliberate:
+
+- **Decisions are immutable.** A second `decide` on the same run is refused.
+  Re-run the pipeline to produce a new case.
+- **Rationale has a minimum length.** An unexplained decision is not an audit
+  record.
+- **An analyst name is required.** Unattributed decisions are not records either.
+- **Closing a case with HIGH-severity findings requires confirmation** — typing
+  `CLOSE` interactively, or `--confirm-close-high` when scripted. The scripted
+  path must not be a way around the control.
+- **`escalate` files nothing.** It writes a record and stops. Whatever acts on
+  an escalation is a separate system with its own controls.
+
 ## Exit codes
 
 | Code | Meaning | What to do |
