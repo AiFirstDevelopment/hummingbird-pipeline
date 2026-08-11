@@ -21,7 +21,15 @@ alert + source documents
    │
    ├─ 3. review     a second LLM call, fresh context, tries to break the draft
    │
-   └─ 4. human gate writes a case file and halts. Nothing is filed.
+   └─ 4. human gate writes a case file and HALTS. Nothing is filed.
+
+════════════ the pipeline ends here. it does not resume. ════════════
+
+   later, a person:
+       npm run queue        what is waiting on an analyst
+       npm run review-case  read the case file
+       npm run decide       record escalate / close / request_information
+                             └─ appended to the SAME trace as the model calls
 ```
 
 Every model call is written to an append-only trace as it happens.
@@ -73,6 +81,48 @@ Each run writes to `runs/<run-id>/`:
 
 `runs/` is gitignored.
 
+## The human gate
+
+There is no "continue." `npm run pipeline` produces a draft and halts, and the
+absence of a resume path is the control — nothing in this codebase can carry a
+case forward without a person.
+
+But halting is only half a gate. The first version of this presented a case file
+that ended in checkboxes, and those checkboxes went nowhere: an analyst read the
+draft, formed a judgement, and the judgement evaporated. The pipeline could show
+you what the machine did and not what a person concluded.
+
+**The decision is appended to the same `trace.jsonl` as the model calls.** That
+is the whole point:
+
+```
+seq  0–14   run_started → model calls → grounding checks
+            → human_gate_reached → run_finished          ← the machine's work
+
+seq 15–18   case_reopened_for_decision
+            → human_decision_recorded
+            → case_closed                                ← the human's judgement
+```
+
+One file, one chronological chain. Appending after `run_finished` is correct
+rather than a bug: the run did finish, and later a person decided something. A
+trace that records what the machine did but not what the human concluded cannot
+answer *"why was this case closed?"* — and that is the question that actually
+gets asked, sometimes years later.
+
+Controls on the decision path, all deliberate friction:
+
+- **Decisions are immutable.** A second `decide` on the same run is refused.
+  Re-run the pipeline to produce a new case.
+- **A named analyst is required.** An unattributed decision is not a record.
+- **A rationale of at least 20 characters is required.** Neither is an
+  unexplained one.
+- **Closing a case with HIGH-severity findings takes explicit confirmation** —
+  typing `CLOSE` interactively, or `--confirm-close-high` when scripted. The
+  scripted path is not a way around the control.
+- **`escalate` files nothing.** It writes a record and stops. Whatever consumes
+  an escalation is a separate system with its own controls.
+
 ## The interesting parts
 
 **Grounding is enforced by types, not by asking nicely.** `summarize()` takes
@@ -99,7 +149,8 @@ alone, with real citations pointing at real facts.
 
 **The gate is an absence.** There is no filing client, no outbound call, and no
 "if confident, proceed" branch anywhere in the codebase. The pipeline's terminal
-state is a file on disk.
+state is a file on disk. See [The human gate](#the-human-gate) for how a person
+picks it up from there, and why their decision lands in the same audit trail.
 
 ## The fixtures are deliberately hostile
 
