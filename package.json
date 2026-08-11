@@ -8,7 +8,8 @@
     "typecheck": "tsc --noEmit",
     "hello": "tsx --env-file=.env src/hello.ts",
     "fixtures": "tsx src/show-fixtures.ts",
-    "pipeline": "tsx --env-file=.env src/pipeline.ts"
+    "pipeline": "tsx --env-file=.env src/pipeline.ts",
+    "experiment:review-prompt": "tsx --env-file=.env src/experiments/review-prompt-ab.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.116.0",

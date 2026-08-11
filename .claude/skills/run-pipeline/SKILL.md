@@ -117,9 +117,34 @@ sent to the API, so the model's output shape changes with it — re-run the full
 pipeline after any schema edit rather than typechecking alone.
 
 The review prompt deliberately asks for **every** issue including low-severity
-ones. Do not add "only report significant findings" — the model follows that
-literally and measured recall drops, which is the opposite of what a review step
-is for.
+ones. **Do not add "only report significant findings."** This is measured, not
+assumed — `src/experiments/review-prompt-ab.ts` holds the facts and narrative
+fixed and varies only the review prompt:
+
+| Arm | Findings per run | Mean |
+| --- | --- | --- |
+| Control ("report every issue, do not filter") | 4, 2, 3 | 3.0 |
+| Filtered ("only significant, be conservative, don't nitpick") | 0, 0, 0 | 0.0 |
+
+The filtered arm returned `ready_for_analyst` with zero findings in all three
+runs. Among the findings it suppressed: that the prior analyst's own escalation
+condition — flag if deposits begin clustering just under $10,000 (F-026) — is met
+by the current deposit pattern. That is the most consequential point in the case,
+and the "sensible" prompt reported nothing at all.
+
+The filter reads like a reasonable efficiency tightening. It is not. The model
+investigates just as hard and then declines to report below the stated bar.
+
+Re-run it after any review-prompt edit:
+
+```sh
+npx tsx --env-file=.env src/experiments/review-prompt-ab.ts runs/<run-id>/result.json
+```
+
+**Second finding from the same experiment:** control was non-deterministic —
+4, 2, and 3 findings across runs, and not the same findings each time. A single
+review pass is a sample, not a verdict. If review recall matters, run it N times
+and take the union rather than trusting one pass.
 
 ## Fixtures
 

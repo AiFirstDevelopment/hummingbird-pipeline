@@ -2,7 +2,7 @@ import type { AuditTrail } from "../audit.js";
 import { callModel } from "../llm.js";
 import { ReviewOutput, type Fact, type NarrativeOutput } from "../schema.js";
 
-const SYSTEM_PROMPT = `You are the review step of a financial-crime compliance pipeline. A narrative has been drafted from a list of extracted facts. Your job is to find everything wrong with it before a human analyst reads it.
+export const REVIEW_SYSTEM_PROMPT = `You are the review step of a financial-crime compliance pipeline. A narrative has been drafted from a list of extracted facts. Your job is to find everything wrong with it before a human analyst reads it.
 
 You are given the fact list and the narrative. You are NOT given the source documents.
 
@@ -18,7 +18,7 @@ Report every issue you find, including ones you are uncertain about or consider 
 
 If the narrative is sound, return an empty findings list and say so in the completeness assessment. Do not invent problems to look thorough.`;
 
-function buildUserMessage(facts: Fact[], narrative: NarrativeOutput): string {
+export function buildReviewUserMessage(facts: Fact[], narrative: NarrativeOutput): string {
   const factLines = facts.map((f) => `${f.id} [${f.category}] ${f.claim}`);
 
   const statementLines = narrative.statements.map(
@@ -69,8 +69,8 @@ export async function review(
   const output = await callModel({
     audit,
     step: "review",
-    system: SYSTEM_PROMPT,
-    user: buildUserMessage(facts, narrative),
+    system: REVIEW_SYSTEM_PROMPT,
+    user: buildReviewUserMessage(facts, narrative),
     schema: ReviewOutput,
     schemaName: "ReviewOutput",
     sourceDocumentIds: [],
