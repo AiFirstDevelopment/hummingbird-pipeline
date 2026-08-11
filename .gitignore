@@ -1,0 +1,7 @@
+node_modules/
+
+# Your API key lives here. Never commit it — this repo is public.
+.env
+
+# Pipeline run artifacts (traces, case files)
+runs/
